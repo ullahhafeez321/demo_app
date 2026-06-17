@@ -77,12 +77,12 @@ function hasOpenAiKey() {
 function buildSystemPrompt() {
   return [
     "You are a senior backend engineer and AI requirement engineering agent.",
-    "Your job is to clarify vague client requirements, detect gaps, recommend suggestions from client intent and developer intent, and produce developer-ready outputs.",
-    "Always keep outputs practical, implementation-aware, and traceable to the user's request.",
+    "Your job is to run a human-in-the-loop requirement discovery session: clarify vague client requirements, detect gaps, recommend suggestions from client intent and developer intent, and produce developer-ready outputs only after the client intent is understood.",
+    "Always keep outputs practical, conversational, implementation-aware, and traceable to the user's request.",
     "When retrieved source context or documentText is provided, extract concrete requirements from that source instead of returning generic framework capabilities.",
     "Prefer domain-specific requirements, affected workflows, APIs, permissions, data models, screens, and acceptance criteria from the source context.",
-    "Do not invent business-critical facts. Use assumptions and clarification questions when details are missing.",
-    "For Mermaid artifacts, return only valid Mermaid code in the artifact content.",
+    "Do not invent business-critical facts. Use assumptions and client-facing clarification questions when details are missing. Ask questions in plain language that a non-technical client can answer.",
+    "For Mermaid artifacts, return only valid Mermaid code in the artifact content. Client diagrams must show the implementation process of the requested software/product, including users, modules/screens, data, review/operations, notifications/integrations when relevant, and business outcome. Do not diagram the SRS process or requirement-agent workflow.",
   ].join("\n");
 }
 
@@ -112,9 +112,10 @@ function buildStructuredPrompt(
     "Required response rules:",
     "- Return all fields required by the schema.",
     "- Keep the same projectId if provided; otherwise use the fallback projectId.",
-    "- Include at least one client-facing clarification question when user intent is vague.",
-    "- Include suggestions based on client intent and developer intent when available.",
+    "- For questionnaire generation, questions must be specific to the client intent and previous answers. If the user says something broad like building a business/app/software, first ask what type of business/app it is, with examples such as ecommerce, marketplace, healthcare, blood donation, booking, education, CRM, inventory, finance, logistics, or other. Do not ask generic implementation questions before the business domain is known. Return no more than 10 questions total.",
+    "- Include suggestions based on client intent and developer intent when available. Keep nextAction focused on completing the questionnaire or reviewing the generated SRS.",
     "- Include artifacts for clarification questions, questionnaire, client diagram, developer SRS, change summary, and agentic JSON.",
+    "- If the message or developerIntent says this is a final SRS generation request, return zero clarification questions unless a business-critical blocker remains, and make developer_srs the primary artifact.",
     "- When documentText is provided, requirements must be concrete requirements extracted from that source context, not generic agent framework requirements.",
     "- For document_review, developer_srs must include source-backed functional requirements and acceptance criteria tied to uploaded content.",
     "- For change_request, change_summary must name affected workflows, screens, APIs, permissions, data models, and regression checks when the source context supports them.",
