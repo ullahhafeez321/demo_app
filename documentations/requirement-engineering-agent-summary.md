@@ -52,6 +52,8 @@ The agent should ask questions, conduct an interview-style requirement gathering
 
 The agent should convert the gathered information into outputs that are understandable for both clients and developers.
 
+The agent should also recommend useful suggestions based on the client's intent or the developer's implementation intent when requirements are incomplete, unclear, or evolving.
+
 ## 6. Core Agent Responsibilities
 
 The agent should:
@@ -62,6 +64,7 @@ The agent should:
 - Use interview-style requirement gathering.
 - Help understand requirements from client-provided material such as PDFs.
 - Handle new requirements or changed requirements during development.
+- Recommend suggestions based on client intent or developer intent.
 - Show diagrams for client-level understanding.
 - Produce an SRS for developer-level understanding.
 
