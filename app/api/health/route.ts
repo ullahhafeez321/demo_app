@@ -1,0 +1,11 @@
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+export function GET() {
+  return NextResponse.json({
+    ok: true,
+    service: "requirement-engineering-agent",
+    phase: "backend-phase-1",
+  });
+}
