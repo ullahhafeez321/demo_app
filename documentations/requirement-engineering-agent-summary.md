@@ -62,6 +62,7 @@ The agent should:
 - Use interview-style requirement gathering.
 - Help understand requirements from client-provided material such as PDFs.
 - Handle new requirements or changed requirements during development.
+- Prioritize a requirement intake flow that starts with clarification questions, then converts the answers into a structured SRS, simple client-facing diagrams, and a change-tracking summary.
 - Show diagrams for client-level understanding.
 - Produce an SRS for developer-level understanding.
 
@@ -98,4 +99,3 @@ Later, the project requirements can be separated into:
 - Fundamental tasks.
 - Easy tasks.
 - Complex tasks.
-
