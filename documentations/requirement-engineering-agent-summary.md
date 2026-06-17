@@ -102,3 +102,26 @@ Later, the project requirements can be separated into:
 - Easy tasks.
 - Complex tasks.
 
+## 11. Recommended Tech Stack & Deployment Strategy
+
+To ensure a fast, free, and highly reliable presentation for the demo, the project is architected as a **Next.js Monolith**, hosting both the frontend UI and the backend agent logic in a single repository.
+
+### Frontend (User Interface)
+* **Framework:** Next.js 16 (React) for rapid UI development.
+* **Styling & Components:** Tailwind CSS paired with shadcn/ui. This allows for fast, copy-paste implementation of polished components (like the `Resizable` panel layout).
+* **User Experience (UX):** A Claude-style "split-screen" Artifact layout.
+    * *Left Side:* The conversational chat interface for gathering client requirements.
+    * *Right Side (Artifact Panel):* A dynamic viewer that renders diagrams, formatted SRS documents, and raw JSON depending on the target user.
+* **Diagram Rendering:** Mermaid.js (`react-mermaid2`), instantly transforming agent-generated code into visual flowcharts for the client output.
+
+### Backend (Agent Core Logic)
+* **Framework:** Next.js API Routes (Serverless Functions). 
+* **Agent Toolkit:** Vercel AI SDK. This SDK natively handles real-time text streaming to the frontend, tool calling, and structured JSON generation, eliminating the need for a separate Python backend.
+
+### Cloud Vector Database (Memory & PDF Storage)
+* **Platform:** Pinecone (Free Tier) or Supabase (pgvector).
+* **Why:** Because Vercel uses serverless architecture, local databases (like ChromaDB) are wiped clean after every request. A cloud-based vector DB ensures that uploaded PDFs and client context persist perfectly during the demo.
+
+### Deployment Plan
+* **Hosting Platform:** Vercel.
+* **Why:** It offers instant, zero-configuration deployments directly from GitHub. Because the frontend and backend are housed in the exact same Next.js repository, there are no cross-origin (CORS) errors to debug, and the application remains awake and instantly responsive for the live pitch.
