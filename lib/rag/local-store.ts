@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { cosineSimilarity, embedQuery, embedTexts, lexicalSimilarity } from "@/lib/rag/embeddings";
+import { cosineSimilarity, embedQuery, embedTexts } from "@/lib/rag/embeddings";
 import type { PersistDocumentInput, RagSearchResult, RagStorePayload } from "@/lib/rag/types";
 
 const storeDir = path.join(process.cwd(), ".rag-store");
@@ -63,7 +63,6 @@ export async function searchDocuments(projectId: string, query: string, limit = 
     .filter((chunk) => chunk.projectId === projectId)
     .map((chunk) => {
       const vectorScore = cosineSimilarity(queryEmbedding.embedding, chunk.embedding);
-      const lexicalScore = lexicalSimilarity(query, chunk.text);
       const sameProviderBonus = queryEmbedding.provider === chunk.embeddingProvider ? 0.05 : 0;
 
       return {
@@ -71,7 +70,7 @@ export async function searchDocuments(projectId: string, query: string, limit = 
         chunkId: chunk.id,
         fileName: chunk.fileName,
         text: chunk.text,
-        score: Math.max(vectorScore, lexicalScore) + sameProviderBonus,
+        score: vectorScore + sameProviderBonus,
         index: chunk.index,
       };
     })

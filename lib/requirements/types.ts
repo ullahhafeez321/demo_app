@@ -13,7 +13,7 @@ export type RequirementArtifactKind =
   | "change_summary"
   | "agentic_json";
 
-export type RequirementAgentProvider = "openai" | "deterministic_fallback";
+export type RequirementAgentProvider = "openai";
 
 export interface RequirementAgentRequest {
   projectId?: string;
@@ -27,11 +27,18 @@ export interface RequirementAgentRequest {
   stream?: boolean;
 }
 
+export interface ClarificationAnswerOption {
+  label: string;
+  value: string;
+  recommended?: boolean;
+}
+
 export interface ClarificationQuestion {
   id: string;
   question: string;
   reason: string;
   target: RequirementUserRole;
+  options: ClarificationAnswerOption[];
 }
 
 export interface RequirementSuggestion {

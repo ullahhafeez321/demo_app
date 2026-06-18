@@ -1,7 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { generateObject, streamText } from "ai";
 
-import { createRequirementAgentResponse } from "@/lib/requirements/agent";
 import { requirementAgentResponseSchema } from "@/lib/requirements/schemas";
 import { RequirementAgentConfigurationError, RequirementAgentProviderError } from "@/lib/requirements/errors";
 import type { RequirementAgentRequest, RequirementAgentResponse } from "@/lib/requirements/types";
@@ -11,8 +10,6 @@ const defaultModel = "gpt-4o-mini";
 export async function createRequirementAgentResponseWithAi(
   request: RequirementAgentRequest,
 ): Promise<RequirementAgentResponse> {
-  const baseline = createRequirementAgentResponse(request);
-
   if (!hasOpenAiKey()) {
     throw new RequirementAgentConfigurationError(
       "OpenAI API key is missing. Configure OPENAI_API_KEY before using the requirement agent.",
@@ -27,7 +24,7 @@ export async function createRequirementAgentResponseWithAi(
       schemaDescription:
         "A structured requirement engineering response for clients, developers, and agentic coding tools.",
       system: buildSystemPrompt(),
-      prompt: buildStructuredPrompt(request, baseline),
+      prompt: buildStructuredPrompt(request),
       temperature: 0.2,
     });
 
@@ -41,8 +38,6 @@ export async function createRequirementAgentResponseWithAi(
 }
 
 export function createRequirementAgentStream(request: RequirementAgentRequest): Response {
-  const baseline = createRequirementAgentResponse(request);
-
   if (!hasOpenAiKey()) {
     throw new RequirementAgentConfigurationError(
       "OpenAI API key is missing. Configure OPENAI_API_KEY before using streaming responses.",
@@ -53,7 +48,7 @@ export function createRequirementAgentStream(request: RequirementAgentRequest): 
     const result = streamText({
       model: openai(process.env.OPENAI_MODEL ?? defaultModel),
       system: buildSystemPrompt(),
-      prompt: buildStreamingPrompt(request, baseline),
+      prompt: buildStreamingPrompt(request),
       temperature: 0.3,
     });
 
@@ -86,10 +81,7 @@ function buildSystemPrompt() {
   ].join("\n");
 }
 
-function buildStructuredPrompt(
-  request: RequirementAgentRequest,
-  fallback: RequirementAgentResponse,
-) {
+function buildStructuredPrompt(request: RequirementAgentRequest) {
   return [
     "Create a structured requirement engineering response.",
     "",
@@ -110,26 +102,20 @@ function buildStructuredPrompt(
     ),
     "",
     "Required response rules:",
-    "- Return all fields required by the schema.",
-    "- Keep the same projectId if provided; otherwise use the fallback projectId.",
-    "- For questionnaire generation, questions must be specific to the client intent and previous answers. If the user says something broad like building a business/app/software, first ask what type of business/app it is, with examples such as ecommerce, marketplace, healthcare, blood donation, booking, education, CRM, inventory, finance, logistics, or other. Do not ask generic implementation questions before the business domain is known. Return no more than 10 questions total.",
+    "- Return all fields required by the schema. During early interview/questionnaire turns, requirements may be an empty array until enough client answers exist to produce accurate requirements.",
+    "- Keep the same projectId if provided; otherwise create a concise projectId from the user request.",
+    "- For questionnaire generation, questions must be specific to the client intent and previous answers. Each clarification question must include 3-4 answer options in its options field, and those options must directly answer that exact question. Mark exactly one option recommended. Always include an option that lets the client express a different/other direction. If the user says something broad like building a business/app/software, first ask what type of business/app it is, with options such as ecommerce, marketplace, healthcare, blood donation, booking, education, CRM, inventory, finance, logistics, and other. Do not ask generic implementation questions before the business domain is known. Never repeat a question topic, business fact, or decision already present in existingRequirements, message, or developerIntent. If the business domain/type is already answered, immediately move to the next missing requirement area. Return no more than 5 questions total.",
     "- Include suggestions based on client intent and developer intent when available. Keep nextAction focused on completing the questionnaire or reviewing the generated SRS.",
     "- Include artifacts for clarification questions, questionnaire, client diagram, developer SRS, change summary, and agentic JSON.",
-    "- If the message or developerIntent says this is a final SRS generation request, return zero clarification questions unless a business-critical blocker remains, and make developer_srs the primary artifact.",
+    "- If the message or developerIntent says this is a final SRS generation request, return zero clarification questions unless a business-critical blocker remains, and make developer_srs the primary artifact with non-empty requirements. The developer_srs artifact content must be clean markdown prose in plain English sections, not JSON, not escaped JSON, not Mermaid, and not random placeholder text.",
     "- When documentText is provided, requirements must be concrete requirements extracted from that source context, not generic agent framework requirements.",
     "- For document_review, developer_srs must include source-backed functional requirements and acceptance criteria tied to uploaded content.",
     "- For change_request, change_summary must name affected workflows, screens, APIs, permissions, data models, and regression checks when the source context supports them.",
     "- The agentic JSON artifact content must be valid JSON as a string.",
-    "",
-    "Fallback structure is only a safety example. Do not copy generic fallback requirements when source context contains more specific product requirements:",
-    JSON.stringify(fallback, null, 2),
   ].join("\n");
 }
 
-function buildStreamingPrompt(
-  request: RequirementAgentRequest,
-  fallback: RequirementAgentResponse,
-) {
+function buildStreamingPrompt(request: RequirementAgentRequest) {
   return [
     "Stream a concise requirement engineering analysis for this request.",
     "Use these sections: Summary, Clarification Questions, Intent-Based Suggestions, Developer Notes, Next Action.",
@@ -145,18 +131,6 @@ function buildStreamingPrompt(
         developerIntent: request.developerIntent,
         documentId: request.documentId,
         documentText: request.documentText?.slice(0, 4000),
-      },
-      null,
-      2,
-    ),
-    "",
-    "Deterministic baseline:",
-    JSON.stringify(
-      {
-        summary: fallback.summary,
-        questions: fallback.questions,
-        suggestions: fallback.suggestions,
-        nextAction: fallback.nextAction,
       },
       null,
       2,

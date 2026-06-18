@@ -27,11 +27,18 @@ export const requirementAgentRequestSchema = z.object({
   stream: z.boolean().optional(),
 });
 
+export const clarificationAnswerOptionSchema = z.object({
+  label: z.string().min(1),
+  value: z.string().min(1),
+  recommended: z.boolean().optional(),
+});
+
 export const clarificationQuestionSchema = z.object({
   id: z.string().min(1),
   question: z.string().min(1),
   reason: z.string().min(1),
   target: requirementUserRoleSchema,
+  options: z.array(clarificationAnswerOptionSchema).min(3).max(5),
 });
 
 export const requirementSuggestionSchema = z.object({
@@ -63,10 +70,10 @@ export const requirementAgentResponseSchema = z.object({
   summary: z.string().min(1),
   questions: z.array(clarificationQuestionSchema),
   suggestions: z.array(requirementSuggestionSchema),
-  requirements: z.array(requirementItemSchema).min(1),
+  requirements: z.array(requirementItemSchema),
   artifacts: z.array(requirementArtifactSchema).min(1),
   nextAction: z.string().min(1),
-  provider: z.enum(["openai", "deterministic_fallback"]).optional(),
+  provider: z.enum(["openai"]).optional(),
   retrieval: z.object({
     used: z.boolean(),
     results: z.array(z.object({

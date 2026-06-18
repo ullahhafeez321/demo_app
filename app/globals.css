@@ -1283,6 +1283,7 @@ button:disabled {
   background: rgb(255 255 255 / 5%);
   padding: 14px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .diagram-flow {
@@ -1407,10 +1408,12 @@ button:disabled {
 }
 
 .mermaid-output {
-  display: grid;
-  place-items: center;
+  display: block;
   margin-top: 14px;
+  width: 100%;
+  max-height: min(68vh, 620px);
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 16px;
   background: rgb(0 0 0 / 18%);
@@ -1418,8 +1421,12 @@ button:disabled {
 }
 
 .mermaid-output svg {
-  max-width: 100%;
+  display: block;
+  width: max-content;
+  min-width: 760px;
+  max-width: none;
   height: auto;
+  margin: 0 auto;
 }
 
 .diagram-skeleton {
@@ -1485,6 +1492,64 @@ button:disabled {
     margin-left: 12px;
     margin-right: 12px;
   }
+}
+
+
+.thread-action-card,
+.thread-diagram-box {
+  margin-top: 14px;
+  border: 1px solid rgb(232 196 104 / 24%);
+  border-radius: 18px;
+  background: rgb(0 0 0 / 18%);
+  padding: 12px;
+}
+
+.thread-action-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: #fff2c8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.thread-action-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.thread-action-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid rgb(232 196 104 / 52%);
+  border-radius: 999px;
+  color: #11151b;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.thread-action-card button.secondary {
+  color: #e9eef8;
+  border-color: rgb(255 255 255 / 16%);
+  background: rgb(255 255 255 / 7%);
+}
+
+.thread-action-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.thread-diagram-box .client-diagram-card {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+}
+
+.thread-srs-action {
+  margin-top: 12px;
 }
 
 .persistent-questionnaire-card {
@@ -1559,7 +1624,65 @@ button:disabled {
 }
 
 @media (max-width: 720px) {
-  .persistent-questionnaire-card {
+  
+.thread-action-card,
+.thread-diagram-box {
+  margin-top: 14px;
+  border: 1px solid rgb(232 196 104 / 24%);
+  border-radius: 18px;
+  background: rgb(0 0 0 / 18%);
+  padding: 12px;
+}
+
+.thread-action-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: #fff2c8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.thread-action-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.thread-action-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid rgb(232 196 104 / 52%);
+  border-radius: 999px;
+  color: #11151b;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.thread-action-card button.secondary {
+  color: #e9eef8;
+  border-color: rgb(255 255 255 / 16%);
+  background: rgb(255 255 255 / 7%);
+}
+
+.thread-action-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.thread-diagram-box .client-diagram-card {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+}
+
+.thread-srs-action {
+  margin-top: 12px;
+}
+
+.persistent-questionnaire-card {
     margin-left: 12px;
     margin-right: 12px;
   }
@@ -1567,5 +1690,14 @@ button:disabled {
   .questionnaire-card-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .mermaid-output {
+    max-height: 58vh;
+    padding: 10px;
+  }
+
+  .mermaid-output svg {
+    min-width: 640px;
   }
 }
