@@ -327,13 +327,19 @@ export function DemoWorkspace() {
       });
       const result = await parseJsonResponse<AgentResponse>(response);
       setActiveArtifacts(result.artifacts);
-      setFinalSrsGenerated(true);
+      const hasSrs = result.artifacts.some((a) => a.kind === "developer_srs");
+      if (hasSrs) {
+        setFinalSrsGenerated(true);
+      } else if (result.questions?.length) {
+        setActiveQuestions(result.questions);
+        setCurrentQuestionIndex(0);
+      }
       addMessage({
         role: "assistant",
         content: result.summary,
         artifacts: result.artifacts,
         retrieval: result.retrieval?.results,
-        questions: [],
+        questions: result.questions,
         suggestions: result.suggestions,
         requirements: result.requirements,
         nextAction: result.nextAction,

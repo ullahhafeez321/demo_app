@@ -12,6 +12,7 @@ import { RequirementAgentConfigurationError, RequirementAgentProviderError } fro
 import { requirementAgentRequestSchema } from "@/lib/requirements/schemas";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const logger = createRequestLogger("/api/agent");
