@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { createRequestLogger } from "@/lib/api/logger";
-import { serverErrorResponse, serviceUnavailableResponse, validationErrorResponse } from "@/lib/api/responses";
+import { GuardrailViolationError, assertRequestSize, maxJsonRequestBytes } from "@/lib/api/guardrails";
+import { guardrailErrorResponse, serverErrorResponse, serviceUnavailableResponse, validationErrorResponse } from "@/lib/api/responses";
 import {
   createRequirementAgentResponseWithAi,
   createRequirementAgentStream,
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
   const logger = createRequestLogger("/api/agent");
 
   try {
+    assertRequestSize(request, maxJsonRequestBytes);
     const body = await request.json();
     const payload = requirementAgentRequestSchema.parse(body);
     const ragContext = payload.projectId
@@ -60,6 +62,11 @@ export async function POST(request: NextRequest) {
     if (error instanceof ZodError) {
       logger.warn("invalid_agent_request", { status: 400 });
       return validationErrorResponse("Invalid requirement agent request.", error);
+    }
+
+    if (error instanceof GuardrailViolationError) {
+      logger.warn("agent_guardrail_violation", { status: 400, reason: error.message, code: error.code });
+      return guardrailErrorResponse(error.message, error.code);
     }
 
     if (
