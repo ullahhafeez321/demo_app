@@ -1,6 +1,6 @@
 import type { DocumentChunk, DocumentIntakeResult } from "@/lib/documents/types";
 
-export type EmbeddingProvider = "openai" | "local_hash";
+export type EmbeddingProvider = "openai";
 
 export interface StoredDocument {
   projectId: string;

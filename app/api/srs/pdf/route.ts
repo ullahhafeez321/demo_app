@@ -28,7 +28,9 @@ export async function POST(request: NextRequest) {
 }
 
 function createTextPdf(title: string, content: string) {
-  const lines = wrapLines([title, "", ...content.split(/\r?\n/)], 88);
+  const normalizedTitle = normalizePdfText(title);
+  const normalizedContent = normalizeSrsContent(content);
+  const lines = wrapLines([normalizedTitle, "", ...normalizedContent.split(/\r?\n/)], 88);
   const pages = chunk(lines, 42);
   const objects: string[] = [];
 
@@ -87,14 +89,14 @@ function renderPageStream(lines: string[], page: number, totalPages: number) {
 
 function wrapLines(lines: string[], maxLength: number) {
   return lines.flatMap((line) => {
-    const trimmed = line.replace(/^#+\s*/, "").replace(/^[-*]\s*/, "- ");
+    const trimmed = normalizePdfText(line).replace(/^#+\s*/, "").replace(/^[-*]\s*/, "- ");
     if (trimmed.length <= maxLength) return [trimmed];
 
     const wrapped: string[] = [];
     let current = "";
     trimmed.split(/\s+/).forEach((word) => {
       if ((current + " " + word).trim().length > maxLength) {
-        wrapped.push(current.trim());
+        if (current.trim()) wrapped.push(current.trim());
         current = word;
       } else {
         current = `${current} ${word}`.trim();
@@ -103,6 +105,69 @@ function wrapLines(lines: string[], maxLength: number) {
     if (current) wrapped.push(current);
     return wrapped;
   });
+}
+
+function normalizeSrsContent(value: string) {
+  const trimmed = value.trim();
+
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+    try {
+      return normalizePdfText(jsonToReadableMarkdown(JSON.parse(trimmed)));
+    } catch {
+      // Keep the original content if it only looks like JSON but is not valid JSON.
+    }
+  }
+
+  return normalizePdfText(trimmed)
+    .replace(/```[a-z]*\n?/gi, "")
+    .replace(/```/g, "")
+    .replace(/\\n/g, "\n")
+    .replace(/\\"/g, '"')
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function jsonToReadableMarkdown(value: unknown, heading = "Software Requirements Specification"): string {
+  if (Array.isArray(value)) {
+    return value.map((item, index) => jsonToReadableMarkdown(item, `Item ${index + 1}`)).join("\n\n");
+  }
+
+  if (value && typeof value === "object") {
+    const lines = [`# ${heading}`];
+    Object.entries(value).forEach(([key, item]) => {
+      const title = key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ");
+      if (Array.isArray(item)) {
+        lines.push("", `## ${title}`);
+        item.forEach((entry) => {
+          if (entry && typeof entry === "object") {
+            lines.push(jsonToReadableMarkdown(entry, "Requirement").replace(/^# Requirement\n?/, ""));
+          } else {
+            lines.push(`- ${String(entry)}`);
+          }
+        });
+      } else if (item && typeof item === "object") {
+        lines.push("", `## ${title}`, jsonToReadableMarkdown(item, title).replace(/^# .*\n?/, ""));
+      } else if (item !== null && item !== undefined && String(item).trim()) {
+        lines.push("", `## ${title}`, String(item));
+      }
+    });
+    return lines.join("\n");
+  }
+
+  return String(value ?? "");
+}
+
+function normalizePdfText(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    .replace(/[\u2022\u25CF\u25E6]/g, "-")
+    .replace(/[\u2026]/g, "...")
+    .replace(/[\u2190-\u21FF]/g, "->")
+    .replace(/[\u00A0]/g, " ")
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
 }
 
 function chunk<T>(items: T[], size: number) {
