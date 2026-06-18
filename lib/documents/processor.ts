@@ -1,8 +1,6 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { PDFParse } from "pdf-parse";
-
 import type { DocumentChunk, DocumentIntakeResult, DocumentRequirementFinding } from "@/lib/documents/types";
 
 const maxUploadBytes = 8 * 1024 * 1024;
@@ -59,7 +57,8 @@ async function extractText(file: File, buffer: Buffer) {
   const mimeType = getSupportedMimeType(file);
 
   if (mimeType === "application/pdf") {
-    configurePdfWorker();
+    const { PDFParse } = await import("pdf-parse");
+    configurePdfWorker(PDFParse);
     const parser = new PDFParse({ data: buffer });
 
     try {
@@ -81,7 +80,7 @@ async function extractText(file: File, buffer: Buffer) {
 }
 
 
-function configurePdfWorker() {
+function configurePdfWorker(PDFParse: any) {
   if (pdfWorkerConfigured) return;
 
   const workerPath = join(process.cwd(), "node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs");
