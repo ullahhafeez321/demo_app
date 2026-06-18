@@ -272,7 +272,13 @@ export function DemoWorkspace() {
         }),
       });
       const result = await parseJsonResponse<AgentResponse>(response);
-      setActiveArtifacts(result.artifacts);
+      const generatedDiagram = result.artifacts.find((artifact) => artifact.kind === "client_diagram" && artifact.content.trim());
+      if (!generatedDiagram) {
+        throw new Error("The agent response did not include a client diagram. Please retry diagram generation.");
+      }
+
+      const diagramArtifacts = [generatedDiagram, ...result.artifacts.filter((artifact) => artifact.kind !== "client_diagram")];
+      setActiveArtifacts(diagramArtifacts);
       setActiveQuestions([]);
       setCurrentQuestionIndex(0);
       setDiagramReady(false);
@@ -282,7 +288,7 @@ export function DemoWorkspace() {
         role: "assistant",
         content: "I created the client-level implementation process diagram from your questionnaire answers. Review it here, then continue to SRS generation when ready.",
         action: "diagram_result",
-        artifacts: result.artifacts,
+        artifacts: diagramArtifacts,
         retrieval: result.retrieval?.results,
         questions: [],
         suggestions: [],
