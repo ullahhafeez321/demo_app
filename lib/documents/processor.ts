@@ -3,6 +3,22 @@ import { pathToFileURL } from "node:url";
 
 import type { DocumentChunk, DocumentIntakeResult, DocumentRequirementFinding } from "@/lib/documents/types";
 
+// Polyfill canvas-related DOM objects for the Vercel Node.js runtime.
+// pdf-parse uses an older pdf.js build that assumes these exist globally.
+if (typeof globalThis.DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {};
+}
+if (typeof globalThis.Path2D === "undefined") {
+  (globalThis as any).Path2D = class Path2D {};
+}
+if (typeof globalThis.ImageData === "undefined") {
+  (globalThis as any).ImageData = class ImageData {
+    data = new Uint8ClampedArray(0);
+    width = 0;
+    height = 0;
+  };
+}
+
 const maxUploadBytes = 8 * 1024 * 1024;
 const chunkSize = 1400;
 const chunkOverlap = 180;
