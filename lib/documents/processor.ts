@@ -1,3 +1,6 @@
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { PDFParse } from "pdf-parse";
 
 import type { DocumentChunk, DocumentIntakeResult, DocumentRequirementFinding } from "@/lib/documents/types";
@@ -5,6 +8,7 @@ import type { DocumentChunk, DocumentIntakeResult, DocumentRequirementFinding } 
 const maxUploadBytes = 8 * 1024 * 1024;
 const chunkSize = 1400;
 const chunkOverlap = 180;
+let pdfWorkerConfigured = false;
 
 export async function processDocumentUpload(file: File): Promise<DocumentIntakeResult> {
   validateFile(file);
@@ -55,6 +59,7 @@ async function extractText(file: File, buffer: Buffer) {
   const mimeType = getSupportedMimeType(file);
 
   if (mimeType === "application/pdf") {
+    configurePdfWorker();
     const parser = new PDFParse({ data: buffer });
 
     try {
@@ -73,6 +78,15 @@ async function extractText(file: File, buffer: Buffer) {
     text: buffer.toString("utf8"),
     pageCount: undefined,
   };
+}
+
+
+function configurePdfWorker() {
+  if (pdfWorkerConfigured) return;
+
+  const workerPath = join(process.cwd(), "node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs");
+  PDFParse.setWorker(pathToFileURL(workerPath).toString());
+  pdfWorkerConfigured = true;
 }
 
 function chunkDocumentText(documentId: string, text: string): DocumentChunk[] {

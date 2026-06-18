@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { boundedTextSchema, projectIdSchema } from "@/lib/api/guardrails";
+
 export const requirementUserRoleSchema = z.enum(["client", "developer", "agentic_tool"]);
 export const requirementScenarioSchema = z.enum([
   "initial_discovery",
@@ -16,14 +18,14 @@ export const requirementArtifactKindSchema = z.enum([
 ]);
 
 export const requirementAgentRequestSchema = z.object({
-  projectId: z.string().min(1).optional(),
+  projectId: projectIdSchema.optional(),
   role: requirementUserRoleSchema,
   scenario: requirementScenarioSchema,
-  message: z.string().min(10, "Requirement message must contain at least 10 characters."),
-  existingRequirements: z.string().optional(),
-  developerIntent: z.string().optional(),
-  documentText: z.string().optional(),
-  documentId: z.string().optional(),
+  message: boundedTextSchema("Requirement message", 10, 8000),
+  existingRequirements: boundedTextSchema("Existing requirements", 1, 20000).optional(),
+  developerIntent: boundedTextSchema("Developer intent", 1, 4000).optional(),
+  documentText: boundedTextSchema("Document text", 1, 30000).optional(),
+  documentId: z.string().trim().min(1).max(120).optional(),
   stream: z.boolean().optional(),
 });
 

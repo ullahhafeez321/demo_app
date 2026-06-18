@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 import { createRequestLogger } from "@/lib/api/logger";
-import { badRequestResponse } from "@/lib/api/responses";
+import { GuardrailViolationError, assertRequestSize, maxMultipartRequestBytes, projectIdSchema } from "@/lib/api/guardrails";
+import { badRequestResponse, validationErrorResponse } from "@/lib/api/responses";
 import { processDocumentUpload } from "@/lib/documents/processor";
 import { persistDocument } from "@/lib/rag/store";
 
@@ -11,6 +13,7 @@ export async function POST(request: NextRequest) {
   const logger = createRequestLogger("/api/documents");
 
   try {
+    assertRequestSize(request, maxMultipartRequestBytes);
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -20,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const projectIdValue = formData.get("projectId");
-    const projectId = typeof projectIdValue === "string" && projectIdValue.trim()
+    const projectId = projectIdSchema.parse(typeof projectIdValue === "string" && projectIdValue.trim()
       ? projectIdValue.trim()
-      : "default-project";
+      : "default-project");
     const result = await processDocumentUpload(file);
     const persisted = await persistDocument({ projectId, intake: result });
 
@@ -47,9 +50,16 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      logger.warn("invalid_document_upload_request", { status: 400 });
+      return validationErrorResponse("Invalid document upload request.", error);
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to process uploaded document.";
     logger.error("document_upload_failed", error, { status: 400 });
     return badRequestResponse(
-      error instanceof Error ? error.message : "Unable to process uploaded document.",
+      message,
+      error instanceof GuardrailViolationError ? error.code : "document_upload_failed",
     );
   }
 }

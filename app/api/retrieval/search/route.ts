@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { createRequestLogger } from "@/lib/api/logger";
-import { serverErrorResponse, validationErrorResponse } from "@/lib/api/responses";
+import { GuardrailViolationError, assertRequestSize, maxJsonRequestBytes } from "@/lib/api/guardrails";
+import { guardrailErrorResponse, serverErrorResponse, validationErrorResponse } from "@/lib/api/responses";
 import { getRagStoreProvider, searchDocuments } from "@/lib/rag/store";
 import { ragSearchRequestSchema } from "@/lib/rag/schemas";
 
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
   const logger = createRequestLogger("/api/retrieval/search");
 
   try {
+    assertRequestSize(request, maxJsonRequestBytes);
     const payload = ragSearchRequestSchema.parse(await request.json());
     const results = await searchDocuments(payload.projectId, payload.query, payload.limit);
 
@@ -31,6 +33,11 @@ export async function POST(request: NextRequest) {
     if (error instanceof ZodError) {
       logger.warn("invalid_retrieval_search_request", { status: 400 });
       return validationErrorResponse("Invalid retrieval search request.", error);
+    }
+
+    if (error instanceof GuardrailViolationError) {
+      logger.warn("retrieval_guardrail_violation", { status: 400, reason: error.message, code: error.code });
+      return guardrailErrorResponse(error.message, error.code);
     }
 
     logger.error("retrieval_search_failed", error, { status: 500 });
