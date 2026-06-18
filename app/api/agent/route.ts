@@ -8,7 +8,6 @@ import {
   createRequirementAgentResponseWithAi,
   createRequirementAgentStream,
 } from "@/lib/requirements/ai-agent";
-import { buildRagContext } from "@/lib/rag/context";
 import { RequirementAgentConfigurationError, RequirementAgentProviderError } from "@/lib/requirements/errors";
 import { requirementAgentRequestSchema } from "@/lib/requirements/schemas";
 
@@ -21,43 +20,26 @@ export async function POST(request: NextRequest) {
     assertRequestSize(request, maxJsonRequestBytes);
     const body = await request.json();
     const payload = requirementAgentRequestSchema.parse(body);
-    const ragContext = payload.projectId
-      ? await buildRagContext(payload.projectId, payload.message)
-      : undefined;
-    const enrichedPayload = ragContext?.contextText
-      ? {
-          ...payload,
-          documentText: [payload.documentText, ragContext.contextText].filter(Boolean).join("\n\nRetrieved project context:\n"),
-        }
-      : payload;
 
-    if (enrichedPayload.stream) {
+    if (payload.stream) {
       logger.info("agent_stream_started", {
-        projectId: enrichedPayload.projectId,
-        retrievalUsed: Boolean(ragContext?.contextText),
+        projectId: payload.projectId,
+        retrievalUsed: false,
         status: 200,
       });
-      return createRequirementAgentStream(enrichedPayload);
+      return createRequirementAgentStream(payload);
     }
 
-    const result = await createRequirementAgentResponseWithAi(enrichedPayload);
+    const result = await createRequirementAgentResponseWithAi(payload);
 
     logger.info("agent_response_completed", {
-      projectId: enrichedPayload.projectId,
+      projectId: payload.projectId,
       provider: result.provider,
-      retrievalUsed: Boolean(ragContext?.contextText),
+      retrievalUsed: Boolean(result.retrieval?.used),
       status: 200,
     });
 
-    return NextResponse.json({
-      ...result,
-      retrieval: ragContext
-        ? {
-            used: Boolean(ragContext.contextText),
-            results: ragContext.results,
-          }
-        : undefined,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof ZodError) {
       logger.warn("invalid_agent_request", { status: 400 });
